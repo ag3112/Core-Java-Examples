@@ -4,6 +4,7 @@ import java.text.DecimalFormat;
 
 /**
  * Created by Intel on 6/27/2015.
+ * Program to print all atm pins
  */
 public class AtmPin {
 
