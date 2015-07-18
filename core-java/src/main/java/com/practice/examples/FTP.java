@@ -3,16 +3,16 @@ package com.practice.examples;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPFileFilter;
 
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 
 /**
  * Created by Intel on 7/15/2015.
+ * Using Apache commons FTPClient v3.3 API.
  */
 public class FTP {
 
@@ -24,7 +24,7 @@ public class FTP {
     private String password = "";
     /*Specify remote directory to null, if your file is present at parent directory.*/
     private String remoteFileDirectory = "";
-    /*File name pattern */
+    /*File name pattern to filter out required file(s)*/
     private String fileNamePattern = "";
     /*Path where file get save locally*/
     private String localPath = "";
@@ -43,6 +43,7 @@ public class FTP {
 
     /**
      * Starting point for FTP !!
+     *
      * @param args
      */
     public static void main(String[] args) {
@@ -50,25 +51,26 @@ public class FTP {
         FTP ftp = new FTP();
         try {
             ftp.getClient();
-            List<String> fileList = ftp.retrieveFileList();
-            if (fileList.isEmpty()) {
+            FTPFile[] fileList = ftp.retrieveFileList();
+            if (fileList.length == 0) {
                 throw new FileNotFoundException("File not present at remote directory");
             }
 
 
             String fileName = "";
-            if (fileList.size() == 1) {
-                fileName = fileList.get(0);
+            if (fileList.length == 1) {
+                fileName = fileList[0].getName();
             } else {
-                for (String name : fileList) {
-                    System.out.println("[DEBUG] Matched files [ " + name + " ]");
-                    if (StringUtils.contains(name, "Full")) {
-                        fileName = name;
+                // Logic to get a single file, if there are multiple files.
+                for (FTPFile file : fileList) {
+                    System.out.println("[DEBUG] Matched files [ " + file.getName() + " ]");
+                    if (StringUtils.contains(file.getName(), "Full")) {
+                        fileName = file.getName();
                     }
                 }
                 if (StringUtils.isEmpty(fileName)) {
                     System.out.println("[WARNING] Two or more change files are present at remote directory");
-                    fileName = fileList.get(0);
+                    fileName = fileList[0].getName();
                 }
             }
 
@@ -80,7 +82,8 @@ public class FTP {
             } else {
                 ftp.getFile(fileName);
             }
-
+            // Logging out !!
+            ftp.getFtpClient().logout();
         } catch (Exception exp) {
             System.out.println("Unable to retrieve file [ " + exp + "]");
         }
@@ -106,25 +109,16 @@ public class FTP {
      * @return
      * @throws IOException
      */
-    private List<String> retrieveFileList() throws IOException {
+    private FTPFile[] retrieveFileList() throws IOException {
         FTPClient client = getFtpClient();
-        if (StringUtils.isNotEmpty(remoteFileDirectory)) {
-            System.out.println("Setting remote directory to [ " + remoteFileDirectory + " ]");
-            client.changeWorkingDirectory(remoteFileDirectory);
-        }
-
-        Pattern pattern = Pattern.compile(fileNamePattern);
-
-        List<String> fileList = new ArrayList<String>();
-
-        for (FTPFile file : client.listFiles()) {
-            System.out.println("[DEBUG] Remote File [ " + file.getName() + " ]");
-            if (pattern.matcher(file.getName()).find()) {
-                fileList.add(file.getName());
+        FTPFileFilter filter = new FTPFileFilter() {
+            Pattern pattern = Pattern.compile(fileNamePattern);
+            public boolean accept(FTPFile ftpFile) {
+                return pattern.matcher(ftpFile.getName()).find();
             }
-        }
+        };
 
-        return fileList;
+        return client.listFiles(remoteFileDirectory, filter);
     }
 
     /**
@@ -135,11 +129,7 @@ public class FTP {
     private void getClient() throws IOException {
         FTPClient client = new FTPClient();
         client.connect(server);
-        if (client.isConnected()) {
-            System.out.println("Connection established with the [ " + server + " ]");
-        } else {
-            throw new IOException("Unable to connect with server [ " + server + " ]");
-        }
+        System.out.println("Connection established with the [ " + server + " ]");
         client.setBufferSize(bufferSize);
         client.setFileType(FTPClient.BINARY_FILE_TYPE);
         System.out.println("Login to [ " + server + " ] with [ " + userName + " ]");
