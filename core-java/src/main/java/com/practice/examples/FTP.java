@@ -16,18 +16,20 @@ import java.util.regex.Pattern;
  */
 public class FTP {
 
-    private String server = "ftp.abcxyzp.esy.es";
-    private String userName = "u512150247.ankit";
-    private String password = "25540083a";
-
-    private int bufferSize = 1024 * 5;
+    // FTP Server
+    private String server = "";
+    // Username to login to server
+    private String userName = "";
+    //Password
+    private String password = "";
     /*Specify remote directory to null, if your file is present at parent directory.*/
-    private String remoteFileDirectory = "/abc";
+    private String remoteFileDirectory = "";
     /*File name pattern */
-    private String fileNamePattern = ".*.zip";
-
+    private String fileNamePattern = "";
     /*Path where file get save locally*/
-    private String localPath = "C:\\Users\\Intel\\Downloads";
+    private String localPath = "";
+    // Buffer size for file retrieval
+    private int bufferSize = 1024 * 5;
 
     private FTPClient ftpClient;
 
@@ -39,6 +41,10 @@ public class FTP {
         this.ftpClient = ftpClient;
     }
 
+    /**
+     * Starting point for FTP !!
+     * @param args
+     */
     public static void main(String[] args) {
 
         FTP ftp = new FTP();
