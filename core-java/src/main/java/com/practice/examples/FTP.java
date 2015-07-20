@@ -1,5 +1,6 @@
 package com.practice.examples;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -98,9 +99,19 @@ public class FTP {
     private void getFile(String fileName) throws IOException {
         FTPClient client = getFtpClient();
         System.out.println("Retrieving file with name [ " + fileName + " ] at path [ " + localPath + " ]");
-        if (client.retrieveFile(fileName, new FileOutputStream(localPath + fileName))) {
-            System.out.println("File retrieved !!");
+
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(localPath + "\\" + fileName);
+            if (client.retrieveFile(fileName, fos)) {
+                System.out.println("File retrieved !!");
+            } else {
+                throw new IllegalStateException("Problem retrieving file !!");
+            }
+        } finally {
+            IOUtils.closeQuietly(fos);
         }
+
     }
 
     /**
@@ -113,12 +124,14 @@ public class FTP {
         FTPClient client = getFtpClient();
         FTPFileFilter filter = new FTPFileFilter() {
             Pattern pattern = Pattern.compile(fileNamePattern);
+
             public boolean accept(FTPFile ftpFile) {
                 return pattern.matcher(ftpFile.getName()).find();
             }
         };
-
-        return client.listFiles(remoteFileDirectory, filter);
+        /*Change the directory while creating Client as if you change
+        the directory here It will corrupt the downloading file*/
+        return client.listFiles(null, filter);
     }
 
     /**
@@ -130,14 +143,16 @@ public class FTP {
         FTPClient client = new FTPClient();
         client.connect(server);
         System.out.println("Connection established with the [ " + server + " ]");
-        client.setBufferSize(bufferSize);
-        client.setFileType(FTPClient.BINARY_FILE_TYPE);
         System.out.println("Login to [ " + server + " ] with [ " + userName + " ]");
         if (client.login(userName, password)) {
             System.out.println("Login successful !!");
         } else {
             throw new IllegalArgumentException("Login Failed, Invalid credentials !!");
         }
+        client.setBufferSize(bufferSize);
+        client.setFileType(FTPClient.BINARY_FILE_TYPE);
+        // Changing working directory
+        client.changeWorkingDirectory(remoteFileDirectory);
         setFtpClient(client);
     }
 
